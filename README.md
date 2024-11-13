@@ -5,3 +5,12 @@ Este repositório fornece material didático de introdução a problemas de otim
 ## Notebooks
 
 - [Estudo Inicial](./notebooks/nsga-initial-study.ipynb)
+
+## Alerta
+
+Todo o material deste repositório é destinado a estudos e pesquisas sobre NSGA. Por isso, pode conter erros. Caso identifique algum, sua contribuição será muito bem-vinda. Não hesite em entrar em contato!
+
+## Licença
+
+Este projeto está licenciado sob a [Licença MIT](LICENSE).
+
