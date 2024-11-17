@@ -1,12 +1,26 @@
-# NSGA-Studies
+# Estudos sobre NSGA
 
 Este repositório fornece material didático de introdução a problemas de otimização multiobjetivo, com foco na família Non-dominated Sorting Genetic Algorithm (NSGA). Incluindo explicações, implementações e exemplos para ajudar a entender os princípios e aplicações dos algoritmos NSGA.
 
-## Notebooks
+## Catálogo
+
+### Estudo Inicial
+
+Iniciamos os estudos apresentando alguns conceitos básicos e utilizando um exemplo simples para ilustrar a teoria. Os notebooks listados a seguir são desenvolvidos com base nesse exemplo.
+
+#### Notebooks
 
 - [Estudo Inicial](./notebooks/nsga-initial-study.ipynb)
 
+- [Implementação NSGA-II sem crowding distance](./notebooks/nsga-1.ipynb)
+
+- [Implementação NSGA-II](./notebooks/nsga-2.ipynb)
+
+- [Implementação NSGA-III](./notebooks/nsga-3.ipynb)
+
 - [Teste com bibliotecas DEAP e pymoo](./notebooks/nsga-lib-study.ipynb)
+
+- [Comparação de resultados das diferentes implementações](./notebooks/nsga-comparations.ipynb)
 
 ## Ferramentas Utilizadas
 
