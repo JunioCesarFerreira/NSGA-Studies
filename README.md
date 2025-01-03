@@ -26,6 +26,10 @@ Iniciamos os estudos apresentando alguns conceitos básicos e utilizando um exem
 
 - [Exemplos Ilustrativos em duas dimensões](./notebooks/test-2d-analysis.ipynb)
 
+- [Implementações genéricas multidimensionais do NSGA-II e NSGA-III](./notebooks/multidimensional-nsga.ipynb)
+
+- [Exemplo de aplicação para posicionamento de motes em rede RPL](./notebooks/rpl-dodag-nsga.ipynb)
+
 ## Ferramentas Utilizadas
 
 Os estudos deste repositório são conduzidos por meio de **notebooks Jupyter**, utilizando o **Visual Studio Code (VS Code)** como ambiente de desenvolvimento integrado (IDE). Para a execução dos códigos, é usada a versão **Python 3.12.1**. Certifique-se de ter essas ferramentas configuradas para reproduzir e executar os exemplos localmente.
