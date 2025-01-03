@@ -24,7 +24,7 @@ Iniciamos os estudos apresentando alguns conceitos básicos e utilizando um exem
 
 - [Visulização dos pontos de referências em simplexos](./notebooks/test-simplex-dist.ipynb)
 
-- [Examplos Ilustrativos em duas dimensões](./notebooks/test-2d-analysis.ipynb)
+- [Exemplos Ilustrativos em duas dimensões](./notebooks/test-2d-analysis.ipynb)
 
 ## Ferramentas Utilizadas
 
