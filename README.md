@@ -28,7 +28,9 @@ Iniciamos os estudos apresentando alguns conceitos básicos e utilizando um exem
 
 - [Implementações genéricas multidimensionais do NSGA-II e NSGA-III](./notebooks/multidimensional-nsga.ipynb)
 
-- [Exemplo de aplicação para posicionamento de motes em rede RPL](./notebooks/rpl-dodag-nsga.ipynb)
+- Exemplo de aplicação para posicionamento de motes em rede RPL
+    - [Abordagem Inicial](./notebooks/1-rpl-dodag-nsga.ipynb)
+    - [Melhoria nos algoritmos NSGA](./notebooks/2-rpl-dodag-nsga.ipynb)
 
 ## Ferramentas Utilizadas
 
