@@ -31,6 +31,7 @@ Iniciamos os estudos apresentando alguns conceitos básicos e utilizando um exem
 - Exemplo de aplicação para posicionamento de motes em rede RPL
     - [Abordagem Inicial](./notebooks/1-rpl-dodag-nsga.ipynb)
     - [Melhoria no DODAG e na população inicial](./notebooks/2-rpl-dodag-nsga.ipynb)
+    - [Estudos de Crossover em DODAG](./notebooks/digraph-crossover.ipynb)
 
 ## Ferramentas Utilizadas
 
