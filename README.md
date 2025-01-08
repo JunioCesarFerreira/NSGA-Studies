@@ -10,28 +10,36 @@ Iniciamos os estudos apresentando alguns conceitos básicos e utilizando um exem
 
 #### Notebooks
 
-- [Estudo Inicial](./notebooks/nsga-initial-study.ipynb)
+**Básico**
 
-- [Implementação NSGA-II sem crowding distance](./notebooks/nsga-1.ipynb)
+- [Estudo Inicial](./notebooks/basic/nsga-initial-study.ipynb)
 
-- [Implementação NSGA-II](./notebooks/nsga-2.ipynb)
+- [Implementação NSGA-II sem crowding distance](./notebooks/basic/nsga-1.ipynb)
 
-- [Implementação NSGA-III](./notebooks/nsga-3.ipynb)
+- [Implementação NSGA-II](./notebooks/basic/nsga-2.ipynb)
 
-- [Teste com bibliotecas DEAP e pymoo](./notebooks/nsga-lib-study.ipynb)
+- [Implementação NSGA-III](./notebooks/basic/nsga-3.ipynb)
 
-- [Comparação de resultados das diferentes implementações](./notebooks/nsga-comparations.ipynb)
+- [Teste com bibliotecas DEAP e pymoo](./notebooks/basic/nsga-lib-study.ipynb)
 
-- [Visulização dos pontos de referências em simplexos](./notebooks/test-simplex-dist.ipynb)
+- [Visulização dos pontos de referências em simplexos](./notebooks/basic/test-simplex-dist.ipynb)
 
-- [Exemplos Ilustrativos em duas dimensões](./notebooks/test-2d-analysis.ipynb)
+**Comparações**
 
-- [Implementações genéricas multidimensionais do NSGA-II e NSGA-III](./notebooks/multidimensional-nsga.ipynb)
+- [Comparação de resultados das diferentes implementações](./notebooks/comparative/nsga-comparations.ipynb)
+
+- [Exemplos Ilustrativos em duas dimensões](./notebooks/comparative/test-2d-analysis.ipynb)
+
+**Implementações Genéricas**
+
+- [Implementações genéricas multidimensionais do NSGA-II e NSGA-III](./notebooks/generic/multidimensional-nsga.ipynb)
+
+**Problemas**
 
 - Exemplo de aplicação para posicionamento de motes em rede RPL
-    - [Abordagem Inicial](./notebooks/1-rpl-dodag-nsga.ipynb)
-    - [Melhoria no DODAG e na população inicial](./notebooks/2-rpl-dodag-nsga.ipynb)
-    - [Estudos de Crossover em DODAG](./notebooks/digraph-crossover.ipynb)
+    - [Abordagem Inicial](./notebooks/problem/rpl-dodag/1-rpl-dodag-nsga.ipynb)
+    - [Melhoria no DODAG e na população inicial](./notebooks/problem/rpl-dodag/2-rpl-dodag-nsga.ipynb)
+    - [Estudos de Crossover em DODAG](./notebooks/problem/rpl-dodag/digraph-crossover.ipynb)
 
 ## Ferramentas Utilizadas
 
