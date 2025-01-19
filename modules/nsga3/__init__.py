@@ -1,0 +1,1 @@
+from .nsga3 import nsga3_func
