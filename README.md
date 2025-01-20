@@ -43,6 +43,15 @@ Iniciamos os estudos apresentando alguns conceitos básicos e utilizando um exem
     - [Melhoria no DODAG e na população inicial](./notebooks/problem/rpl-dodag/2-rpl-dodag-nsga.ipynb)
     - [Estudos de Crossover em DODAG](./notebooks/problem/rpl-dodag/digraph-crossover.ipynb)
 
+**Próximos Estudos**
+
+- Biblioteca DEAP
+    - [algorithms.py](https://github.com/DEAP/deap/blob/master/deap/algorithms.py)
+    - [selNSGA3](https://github.com/DEAP/deap/blob/master/deap/tools/emo.py#L492)
+
+- Biblioteca Pymoo
+    - [nsga3.py](https://github.com/anyoptimization/pymoo/blob/main/pymoo/algorithms/moo/nsga3.py)
+
 ## Ferramentas Utilizadas
 
 Os estudos deste repositório são conduzidos por meio de **notebooks Jupyter**, utilizando o **Visual Studio Code (VS Code)** como ambiente de desenvolvimento integrado (IDE). Para a execução dos códigos, é usada a versão **Python 3.12.1**. Certifique-se de ter essas ferramentas configuradas para reproduzir e executar os exemplos localmente.
