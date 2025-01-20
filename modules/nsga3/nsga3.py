@@ -11,7 +11,8 @@ def nsga3_func(
     crossover: Callable[[np.ndarray, np.ndarray], tuple[np.ndarray, np.ndarray]],
     mutation: Callable[[np.ndarray, list[tuple[float, float]]], np.ndarray],
     initial_pop: list[np.ndarray] = None,
-    divisions: int=10
+    divisions: int=10,
+    ref_points: np.ndarray = None
     ) -> list[tuple[float, ...]]:
     """
     NSGA-III generalizado para N dimensões.
@@ -170,7 +171,8 @@ def nsga3_func(
         population = initial_pop
         
     M = len(functions)
-    reference_points = generate_reference_points(M, divisions)
+    if ref_points is None:
+        ref_points = generate_reference_points(M, divisions)
 
     for gen in range(generations):
         objectives = evaluate_population(population, functions)
@@ -188,7 +190,7 @@ def nsga3_func(
         combined_population = population + offspring_population
         combined_objectives = evaluate_population(combined_population, functions)
         combined_fronts = fast_nondominated_sort(combined_objectives)
-        population = environmental_selection(combined_population, combined_objectives, combined_fronts, reference_points, pop_size)
+        population = environmental_selection(combined_population, combined_objectives, combined_fronts, ref_points, pop_size)
 
     objectives = evaluate_population(population, functions)
     fronts = fast_nondominated_sort(objectives)

@@ -28,6 +28,8 @@ Iniciamos os estudos apresentando alguns conceitos básicos e utilizando um exem
 
 - [Comparação de resultados das diferentes implementações](./notebooks/comparative/nsga-comparations.ipynb)
 
+- [Refinamento da comparação de resultados das diferentes implementações](./notebooks/comparative/nsga-comparations2.ipynb)
+
 - [Exemplos Ilustrativos em duas dimensões](./notebooks/comparative/test-2d-analysis.ipynb)
 
 **Implementações Genéricas**
