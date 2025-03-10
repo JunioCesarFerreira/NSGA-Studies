@@ -4,17 +4,20 @@ O **Teorema de Separação de Conjuntos Convexos** afirma que:
 
 Dado dois conjuntos convexos não vazios $A$ e $B$ em um espaço vetorial normado (ou mais geralmente, em um espaço vetorial topológico), sob certas condições, existe um hiperplano que separa $A$ e $B$. O tipo de separação depende da posição relativa entre $A$ e $B$.
 
-### Enunciado formal (caso básico em \(\mathbb{R}^n\)):
+### Enunciado formal (caso básico em $\mathbb{R}^n$):
 
-Sejam $A$ e $B$ dois conjuntos convexos não vazios em \(\mathbb{R}^n\) e $A \cap B = \emptyset$. Então:
+Sejam $A$ e $B$ dois conjuntos convexos não vazios em $\mathbb{R}^n$ e $A \cap B = \emptyset$. Então:
 
 1. **Separação fraca**: Se $A$ e $B$ são disjuntos, existe um vetor $w \in \mathbb{R}^n \setminus \{0\}$ e um escalar $\alpha \in \mathbb{R}$ tais que:  
+
 $$
 \sup_{x \in A} w \cdot x \leq \alpha \leq \inf_{y \in B} w \cdot y,
 $$  
+
    com pelo menos uma desigualdade estrita, garantindo que o hiperplano definido por $w \cdot x = \alpha$ separa $A$ de $B$.
 
 2. **Separação forte**: Se $A$ e $B$ são convexos fechados e disjuntos, então existe $w \in \mathbb{R}^n \setminus \{0\}$ e $\alpha_1, \alpha_2 \in \mathbb{R}$ com $\alpha_1 < \alpha_2$ tais que:  
+
 $$
 w \cdot x \leq \alpha_1, \quad \forall x \in A \quad \text{e} \quad w \cdot y \geq \alpha_2, \quad \forall y \in B.
 $$  
@@ -34,18 +37,22 @@ Vamos analisar o problema geometricamente e usar o **Teorema de Separação de C
 ### 1. Caracterização geométrica do paralelepípedo $P$:
 
 Suponha que o paralelepípedo $P$ seja definido como:  
+
 $$
 P = \{ x \in \mathbb{R}^n \mid a_i \leq x_i \leq b_i, \, i = 1, 2, \dots, n \},
 $$
+
 onde $a = (a_1, a_2, \dots, a_n)$ e $b = (b_1, b_2, \dots, b_n)$ são os vértices opostos que determinam $P$. Aqui, $a_i$ é o menor valor para a $i$-ésima coordenada e $b_i$ é o maior.
 
 
 ### 2. Caracterização geométrica do segmento $R$:
 
 Seja $R$ um segmento de reta definido pelos pontos $p_1$ e $p_2$ em $\mathbb{R}^n$:  
+
 $$
 R = \{ p(t) = (1 - t) p_1 + t p_2 \mid t \in [0, 1] \},
 $$
+
 onde $p_1 = (p_{1,1}, p_{1,2}, \dots, p_{1,n})$ e $p_2 = (p_{2,1}, p_{2,2}, \dots, p_{2,n})$ são os extremos do segmento.
 
 
