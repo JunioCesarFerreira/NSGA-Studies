@@ -20,6 +20,8 @@ Iniciamos os estudos apresentando alguns conceitos básicos e utilizando um exem
 
 - [Implementação NSGA-III](./notebooks/basic/nsga-3.ipynb)
 
+- [Exemplo padrão DEAP](./notebooks/basic/deap-example.ipynb)
+
 - [Teste com bibliotecas DEAP e pymoo](./notebooks/basic/nsga-lib-study.ipynb)
 
 - [Visulização dos pontos de referências em simplexos](./notebooks/basic/test-simplex-dist.ipynb)
