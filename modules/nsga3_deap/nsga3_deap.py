@@ -83,7 +83,7 @@ def nsga3_deap_func(
         
     # Loop evolutivo
     for gen in range(generations):
-        offspring = algorithms.varAnd(population, toolbox, cxpb=0.5, mutpb=0.2)
+        offspring = algorithms.varAnd(population, toolbox, cxpb=1.0, mutpb=1.0)
         fits = toolbox.map(toolbox.evaluate, offspring)
         for fit, ind in zip(fits, offspring):
             ind.fitness.values = fit
