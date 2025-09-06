@@ -1,0 +1,1 @@
+from .nsga3_deap import nsga3_deap_func

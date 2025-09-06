@@ -1,0 +1,1 @@
+from .nsga3_pymoo import nsga3_pymoo_func
