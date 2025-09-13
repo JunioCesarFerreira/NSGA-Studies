@@ -6,7 +6,7 @@ def nsga3_func(
     pop_size: int,
     generations: int,
     bounds: list[tuple[float, float]],
-    functions: list[Callable[[np.ndarray], float]],
+    functions: list[Callable[[np.ndarray], float]] | Callable[[np.ndarray], np.ndarray],
     crossover: Callable[[np.ndarray, np.ndarray], tuple[np.ndarray, np.ndarray]],
     mutation: Callable[[np.ndarray, list[tuple[float, float]]], np.ndarray],
     initial_pop: Optional[list[np.ndarray]] = None,
@@ -19,20 +19,47 @@ def nsga3_func(
     :param pop_size: Tamanho da população
     :param generations: Número de gerações
     :param bounds: Lista de tuplas [(min1, max1), (min2, max2), ...] definindo os limites para cada dimensão
-    :param functions: Lista de funções objetivo [f1, f2, ..., fM]
-    :param crossover: Função de crossover que aceita dois pais e retorna um filho
+    :param functions: Lista de funções objetivo [f1, f2, ..., fM] ou única função multiobjetivo f(x) -> np.ndarray
+    :param crossover: Função de crossover que aceita dois pais e retorna filhos
     :param mutation: Função de mutação que aceita um indivíduo e retorna um indivíduo mutado
     :param divisions: Número de divisões para geração dos pontos de referência
     :return: Fronteira de Pareto da última geração
     """
+
     def initialize_population(size: int, bounds: list[tuple[float, float]]) -> list[np.ndarray]:
         return [
             np.array([random.uniform(b[0], b[1]) for b in bounds], dtype=float)
             for _ in range(size)
         ]
 
-    def evaluate_population(population: Sequence[np.ndarray], functions: list[Callable[[np.ndarray], float]]) -> list[tuple[float, ...]]:
-        return [tuple(f(x) for f in functions) for x in population]
+    def evaluate_population(
+        population: Sequence[np.ndarray],
+        functions: list[Callable[[np.ndarray], float]] | Callable[[np.ndarray], np.ndarray]
+    ) -> list[tuple[float, ...]]:
+        """
+        Avalia a população em dois modos:
+        - Lista de funções objetivos: [f1, f2, ..., fM], cada uma retornando float.
+        - Única função multiobjetivo: f(x) -> np.ndarray com M objetivos.
+        """
+        objectives: list[tuple[float, ...]] = []
+
+        if isinstance(functions, list):
+            # Modo antigo: lista de funções escalar
+            for x in population:
+                obj = tuple(f(x) for f in functions)
+                objectives.append(obj)
+        elif callable(functions):
+            # Novo modo: função que retorna np.ndarray
+            for x in population:
+                obj_vec = functions(x)
+                if isinstance(obj_vec, np.ndarray):
+                    objectives.append(tuple(float(v) for v in obj_vec))
+                else:
+                    raise ValueError("A função multiobjetivo deve retornar um np.ndarray")
+        else:
+            raise ValueError("Parâmetro 'functions' inválido")
+
+        return objectives
 
     def dominates(obj1: tuple[float, ...], obj2: tuple[float, ...]) -> bool:
         return all(x <= y for x, y in zip(obj1, obj2)) and any(x < y for x, y in zip(obj1, obj2))
@@ -185,11 +212,20 @@ def nsga3_func(
     else:
         population = initial_pop
 
-    M: int = len(functions)
+    # Descobre número de objetivos M
+    if isinstance(functions, list):
+        M: int = len(functions)
+    elif callable(functions):
+        test_obj = functions(np.zeros(len(bounds)))
+        if not isinstance(test_obj, np.ndarray):
+            raise ValueError("A função multiobjetivo deve retornar np.ndarray")
+        M: int = test_obj.shape[0]
+    else:
+        raise ValueError("Parâmetro 'functions' inválido")
+
     if ref_points is None:
         ref_points = generate_reference_points(M, divisions)
     else:
-        # garante tipo
         ref_points = np.asarray(ref_points, dtype=float)
 
     for gen in range(generations):
