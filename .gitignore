@@ -1,2 +1,5 @@
 ﻿results
 notebooks/evaluation/sketches.ipynb
+modules/nsga3/__pycache__
+modules/nsga3_deap/__pycache__
+modules/nsga3_pymoo/__pycache__
