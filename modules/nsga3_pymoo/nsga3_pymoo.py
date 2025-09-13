@@ -12,7 +12,7 @@ def nsga3_pymoo_func(
     pop_size: int,
     generations: int,
     bounds: list[tuple[float, float]],
-    functions: list[Callable[[np.ndarray], float]],
+    functions: list[Callable[[np.ndarray], float]] | Callable[[np.ndarray], np.ndarray],
     crossover: Callable[[np.ndarray, np.ndarray], tuple[np.ndarray,np.ndarray]],
     mutation: Callable[[np.ndarray, list[tuple[float, float]]], np.ndarray],
     initial_pop: list[np.ndarray] = None,
@@ -22,8 +22,17 @@ def nsga3_pymoo_func(
     """
     Utiliza PyMoo para resolver o NSGA-III com os parâmetros especificados.
     """    
-    # Número de objetivos e variáveis de decisão
-    n_obj = len(functions)
+    # Número de objetivos
+    if isinstance(functions, list):
+        n_obj = len(functions)
+    elif callable(functions):
+        test_obj = functions(np.zeros(len(bounds)))
+        if not isinstance(test_obj, np.ndarray):
+            raise ValueError("A função multiobjetivo deve retornar np.ndarray")
+        n_obj = test_obj.shape[0]
+    else:
+        raise ValueError("Parâmetro 'functions' inválido")
+
     n_var = len(bounds)
 
     # Definir o problema personalizado para PyMoo
@@ -34,8 +43,11 @@ def nsga3_pymoo_func(
                              xl=np.array([b[0] for b in bounds]), 
                              xu=np.array([b[1] for b in bounds]))
         
-        def _evaluate(self, x, out, *args, **kwargs):
-            out["F"] = np.array([[f(ind) for f in functions] for ind in x])
+        def _evaluate(self, X, out, *args, **kwargs):
+            if isinstance(functions, list):
+                out["F"] = np.array([[f(ind) for f in functions] for ind in X])
+            elif callable(functions):
+                out["F"] = np.array([functions(ind) for ind in X])
 
     problem = CustomProblem()
 
@@ -50,9 +62,24 @@ def nsga3_pymoo_func(
             self.func = func
 
         def _do(self, problem, X, **kwargs):
-            children = self.func(X[0], X[1])
-            # Converte a lista de filhos para um array NumPy
-            return np.array(children)
+            # Corrente do PyMoo: X.shape = (n_parents, n_matings, n_var)
+            n_parents, n_matings, n_var_local = X.shape
+            assert n_parents == 2, "Este crossover requer 2 pais."
+            assert n_var_local == problem.n_var, "Dimensão de variáveis inconsistente."
+
+            # Saída no formato exigido
+            Q = np.empty((self.n_offsprings, n_matings, n_var_local), dtype=float)
+
+            for k in range(n_matings):
+                p1: np.ndarray = np.asarray(X[0, k, :], dtype=float)
+                p2: np.ndarray = np.asarray(X[1, k, :], dtype=float)
+                c1, c2 = self.func(p1, p2)
+                c1 = np.asarray(c1, dtype=float).reshape(n_var_local)
+                c2 = np.asarray(c2, dtype=float).reshape(n_var_local)
+                Q[0, k, :] = c1
+                Q[1, k, :] = c2
+
+            return Q
 
     crossover_operator = CustomCrossover(crossover)
     
@@ -63,7 +90,11 @@ def nsga3_pymoo_func(
             self.bounds = bounds
 
         def _do(self, problem, X, **kwargs):
-            return np.array([self.func(ind, self.bounds) for ind in X])
+            Y = np.empty_like(X, dtype=float)
+            for i, ind in enumerate(X):
+                yi = np.asarray(self.func(ind, self.bounds), dtype=float).reshape(problem.n_var)
+                Y[i, :] = yi
+            return Y
     
     mutation_operator = CustomMutation(mutation, bounds)
 

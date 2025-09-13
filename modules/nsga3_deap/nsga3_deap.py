@@ -6,7 +6,7 @@ def nsga3_deap_func(
     pop_size: int,
     generations: int,
     bounds: list[tuple[float, float]],
-    functions: list[Callable[[np.ndarray], float]],
+    functions: list[Callable[[np.ndarray], float]] | Callable[[np.ndarray], np.ndarray],
     crossover: Callable[[np.ndarray, np.ndarray], tuple[np.ndarray, np.ndarray]],
     mutation: Callable[[np.ndarray, list[tuple[float, float]]], np.ndarray],
     initial_pop: list[np.ndarray] = None,
@@ -14,25 +14,32 @@ def nsga3_deap_func(
     ref_points: np.ndarray = None
 ) -> list[tuple[float, ...]]:
     """
-    Utiliza DEAP para resolver NSGA-II com os parâmetros especificados.
+    Utiliza DEAP para resolver NSGA-III com os parâmetros especificados.
+    Suporta tanto lista de funções escalares [f1, f2, ..., fM]
+    quanto uma única função multiobjetivo f(x) -> np.ndarray.
     """
-    # Número de objetivos e variáveis de decisão
-    n_obj = len(functions)
+    # Número de objetivos
+    if isinstance(functions, list):
+        n_obj = len(functions)
+    elif callable(functions):
+        test_obj = functions(np.zeros(len(bounds)))
+        if not isinstance(test_obj, np.ndarray):
+            raise ValueError("A função multiobjetivo deve retornar np.ndarray")
+        n_obj = test_obj.shape[0]
+    else:
+        raise ValueError("Parâmetro 'functions' inválido")
+
     n_var = len(bounds)
 
     # Criação dos tipos básicos para DEAP
-    creator.create("FitnessMin", base.Fitness, weights=(-1.0,) * n_obj)
-    creator.create("Individual", list, fitness=creator.FitnessMin)
+    if not hasattr(creator, "FitnessMin"):
+        creator.create("FitnessMin", base.Fitness, weights=(-1.0,) * n_obj)
+    if not hasattr(creator, "Individual"):
+        creator.create("Individual", list, fitness=creator.FitnessMin)
 
     toolbox = base.Toolbox()
 
     # Inicializador de indivíduos
-    toolbox.register(
-        "attr_float",
-        lambda low, up: np.random.uniform(low, up),
-        [b[0] for b in bounds],
-        [b[1] for b in bounds],
-    )
     toolbox.register(
         "individual",
         lambda: creator.Individual(
@@ -43,13 +50,20 @@ def nsga3_deap_func(
 
     # Avaliação personalizada
     def evaluate(individual):
-        return tuple(f(np.array(individual)) for f in functions)
+        x = np.array(individual, dtype=float)
+        if isinstance(functions, list):
+            return tuple(f(x) for f in functions)
+        elif callable(functions):
+            obj_vec = functions(x)
+            if not isinstance(obj_vec, np.ndarray):
+                raise ValueError("A função multiobjetivo deve retornar np.ndarray")
+            return tuple(float(v) for v in obj_vec)
 
     toolbox.register("evaluate", evaluate)
 
     # Geração dos pontos de referência para o NSGA-III
     if ref_points is None:
-        ref_points = tools.uniform_reference_points(nobj=2, p=divisions)
+        ref_points = tools.uniform_reference_points(nobj=n_obj, p=divisions)
         
     # Crossover personalizado
     def custom_crossover(ind1, ind2):
