@@ -34,6 +34,10 @@ Iniciamos os estudos apresentando alguns conceitos básicos e utilizando um exem
 
 - [Exemplos Ilustrativos em duas dimensões](./notebooks/comparative/test-2d-analysis.ipynb)
 
+- [Comparação criteriosa no DTLZ2: NSGA-II e três implementações do NSGA-III](./notebooks/comparative/dtlz2-nsga-comparison.ipynb)
+
+- [Comparação criteriosa no DTLZ2: três implementações do NSGA-II (com o NSGA-III como referência)](./notebooks/comparative/dtlz2-nsga2-comparison.ipynb)
+
 **Implementações Genéricas**
 
 - [Implementações genéricas multidimensionais do NSGA-II e NSGA-III](./notebooks/generic/multidimensional-nsga.ipynb)

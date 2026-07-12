@@ -2,7 +2,7 @@ from deap import base, creator, tools, algorithms
 import numpy as np
 from typing import Callable
 
-def nsga3_deap_func(
+def nsga2_deap_func(
     pop_size: int,
     generations: int,
     bounds: list[tuple[float, float]],
@@ -10,18 +10,16 @@ def nsga3_deap_func(
     crossover: Callable[[np.ndarray, np.ndarray], tuple[np.ndarray, np.ndarray]],
     mutation: Callable[[np.ndarray, list[tuple[float, float]]], np.ndarray],
     initial_pop: list[np.ndarray] = None,
-    divisions: int = 10,
-    ref_points: np.ndarray = None,
     mu_plus_lambda: bool = False
 ) -> list[tuple[float, ...]]:
     """
-    Utiliza DEAP para resolver NSGA-III com os parâmetros especificados.
+    Utiliza DEAP para resolver NSGA-II com os parâmetros especificados.
     Suporta tanto lista de funções escalares [f1, f2, ..., fM]
     quanto uma única função multiobjetivo f(x) -> np.ndarray.
 
     :param mu_plus_lambda: se True, a seleção ambiental é feita sobre pais + descendentes
-        (esquema elitista (μ+λ), como nas demais implementações). Se False (padrão,
-        comportamento histórico), seleciona apenas entre os descendentes (esquema (μ, λ)).
+        (esquema elitista (μ+λ)). Se False (padrão), seleciona apenas entre os descendentes
+        (esquema (μ, λ)).
     """
     # Número de objetivos
     if isinstance(functions, list):
@@ -71,10 +69,6 @@ def nsga3_deap_func(
 
     toolbox.register("evaluate", evaluate)
 
-    # Geração dos pontos de referência para o NSGA-III
-    if ref_points is None:
-        ref_points = tools.uniform_reference_points(nobj=n_obj, p=divisions)
-        
     # Crossover personalizado
     def custom_crossover(ind1, ind2):
         child1, child2 = crossover(np.array(ind1), np.array(ind2))
@@ -90,21 +84,21 @@ def nsga3_deap_func(
 
     toolbox.register("mutate", custom_mutation)
 
-    # Operador de seleção
-    toolbox.register("select", tools.selNSGA3)
+    # Operador de seleção (crowded-comparison do NSGA-II)
+    toolbox.register("select", tools.selNSGA2)
 
     # Inicialização da população
     if initial_pop:
         population = [creator.Individual(ind.tolist()) for ind in initial_pop]
     else:
         population = toolbox.population(n=pop_size)
-    
+
     # Avaliação inicial da população
     invalid_ind = [ind for ind in population if not ind.fitness.valid]
     fitnesses = map(toolbox.evaluate, invalid_ind)
     for ind, fit in zip(invalid_ind, fitnesses):
         ind.fitness.values = fit
-        
+
     # Loop evolutivo
     for gen in range(generations):
         offspring = algorithms.varAnd(population, toolbox, cxpb=1.0, mutpb=1.0)
@@ -112,11 +106,11 @@ def nsga3_deap_func(
         for fit, ind in zip(fits, offspring):
             ind.fitness.values = fit
         pool = (population + offspring) if mu_plus_lambda else offspring
-        population = toolbox.select(pool, k=len(population), ref_points=ref_points)
-        
+        population = toolbox.select(pool, k=len(population))
+
     front = tools.emo.sortNondominated(population, len(population), first_front_only=True)[0]
 
     # Retornar a frente de Pareto
     pareto_front = [tuple(ind.fitness.values) for ind in front]
-            
+
     return pareto_front

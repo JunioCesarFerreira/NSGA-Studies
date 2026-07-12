@@ -1,5 +1,4 @@
-from pymoo.algorithms.moo.nsga3 import NSGA3
-from pymoo.util.ref_dirs import get_reference_directions
+from pymoo.algorithms.moo.nsga2 import NSGA2
 from pymoo.core.problem import Problem
 from pymoo.core.crossover import Crossover
 from pymoo.core.mutation import Mutation
@@ -7,23 +6,21 @@ from pymoo.core.population import Population
 from pymoo.optimize import minimize
 import numpy as np
 from typing import Callable
-    
-def nsga3_pymoo_func(
+
+def nsga2_pymoo_func(
     pop_size: int,
     generations: int,
     bounds: list[tuple[float, float]],
     functions: list[Callable[[np.ndarray], float]] | Callable[[np.ndarray], np.ndarray],
-    crossover: Callable[[np.ndarray, np.ndarray], tuple[np.ndarray,np.ndarray]],
+    crossover: Callable[[np.ndarray, np.ndarray], tuple[np.ndarray, np.ndarray]],
     mutation: Callable[[np.ndarray, list[tuple[float, float]]], np.ndarray],
     initial_pop: list[np.ndarray] = None,
-    divisions: int = 10,
-    ref_points: np.ndarray = None,
     seed: int = 1
 ) -> list[tuple[float, ...]]:
     """
-    Utiliza PyMoo para resolver o NSGA-III com os parâmetros especificados.
+    Utiliza PyMoo para resolver o NSGA-II com os parâmetros especificados.
 
-    :param seed: semente do PyMoo. Por padrão 1 (comportamento histórico do módulo).
+    :param seed: semente do PyMoo. Por padrão 1.
     :param initial_pop: se fornecida, é injetada como população inicial via ``sampling``
         (o parâmetro ``initial_population`` de ``minimize`` é ignorado pelo PyMoo).
     """
@@ -43,11 +40,11 @@ def nsga3_pymoo_func(
     # Definir o problema personalizado para PyMoo
     class CustomProblem(Problem):
         def __init__(self):
-            super().__init__(n_var=n_var, 
-                             n_obj=n_obj, 
-                             xl=np.array([b[0] for b in bounds]), 
+            super().__init__(n_var=n_var,
+                             n_obj=n_obj,
+                             xl=np.array([b[0] for b in bounds]),
                              xu=np.array([b[1] for b in bounds]))
-        
+
         def _evaluate(self, X, out, *args, **kwargs):
             if isinstance(functions, list):
                 out["F"] = np.array([[f(ind) for f in functions] for ind in X])
@@ -56,10 +53,6 @@ def nsga3_pymoo_func(
 
     problem = CustomProblem()
 
-    # Direções de referência para NSGA-III
-    if ref_points is None:
-        ref_points = get_reference_directions("das-dennis", n_dim=n_obj, n_partitions=divisions)
-
     # Configurar operadores personalizados
     class CustomCrossover(Crossover):
         def __init__(self, func: Callable[[np.ndarray, np.ndarray], np.ndarray]):
@@ -67,27 +60,21 @@ def nsga3_pymoo_func(
             self.func = func
 
         def _do(self, problem, X, **kwargs):
-            # Corrente do PyMoo: X.shape = (n_parents, n_matings, n_var)
             n_parents, n_matings, n_var_local = X.shape
             assert n_parents == 2, "Este crossover requer 2 pais."
             assert n_var_local == problem.n_var, "Dimensão de variáveis inconsistente."
 
-            # Saída no formato exigido
             Q = np.empty((self.n_offsprings, n_matings, n_var_local), dtype=float)
-
             for k in range(n_matings):
                 p1: np.ndarray = np.asarray(X[0, k, :], dtype=float)
                 p2: np.ndarray = np.asarray(X[1, k, :], dtype=float)
                 c1, c2 = self.func(p1, p2)
-                c1 = np.asarray(c1, dtype=float).reshape(n_var_local)
-                c2 = np.asarray(c2, dtype=float).reshape(n_var_local)
-                Q[0, k, :] = c1
-                Q[1, k, :] = c2
-
+                Q[0, k, :] = np.asarray(c1, dtype=float).reshape(n_var_local)
+                Q[1, k, :] = np.asarray(c2, dtype=float).reshape(n_var_local)
             return Q
 
     crossover_operator = CustomCrossover(crossover)
-    
+
     class CustomMutation(Mutation):
         def __init__(self, func: Callable[[np.ndarray, list[tuple[float, float]]], np.ndarray], bounds: list[tuple[float, float]]):
             super().__init__()
@@ -97,26 +84,22 @@ def nsga3_pymoo_func(
         def _do(self, problem, X, **kwargs):
             Y = np.empty_like(X, dtype=float)
             for i, ind in enumerate(X):
-                yi = np.asarray(self.func(ind, self.bounds), dtype=float).reshape(problem.n_var)
-                Y[i, :] = yi
+                Y[i, :] = np.asarray(self.func(ind, self.bounds), dtype=float).reshape(problem.n_var)
             return Y
-    
+
     mutation_operator = CustomMutation(mutation, bounds)
 
     # População inicial: injetada via `sampling` (o `minimize` ignora `initial_population`).
-    nsga3_kwargs = dict(
+    nsga2_kwargs = dict(
         pop_size=pop_size,
-        ref_dirs=ref_points,
         crossover=crossover_operator,
         mutation=mutation_operator,
     )
     if initial_pop is not None and len(initial_pop) > 0:
-        nsga3_kwargs["sampling"] = Population.new("X", np.array(initial_pop))
+        nsga2_kwargs["sampling"] = Population.new("X", np.array(initial_pop))
 
-    # Configurar algoritmo NSGA-III
-    algorithm = NSGA3(**nsga3_kwargs)
+    algorithm = NSGA2(**nsga2_kwargs)
 
-    # Resolver o problema
     result = minimize(
         problem,
         algorithm,
@@ -126,8 +109,6 @@ def nsga3_pymoo_func(
         save_history=False,
     )
 
-    # Extrair a solução
     pareto_front = [tuple(ind) for ind in result.F]
 
     return pareto_front
-

@@ -70,22 +70,54 @@ def nsga2_func(
         fronts.pop()
         return fronts
 
-    # Distância de crowding
-    def crowding_distance(front: list[int], objectives: list[tuple[float, ...]]) -> list[float]:
-        if len(front) == 1:
-            return [float('inf')]
+    # Distância de crowding (normalizada por objetivo). Retorna dict {idx: distância}.
+    def crowding_distance(front: list[int], objectives: list[tuple[float, ...]]) -> dict[int, float]:
+        distances: dict[int, float] = {i: 0.0 for i in front}
+        if len(front) <= 2:
+            for i in front:
+                distances[i] = float('inf')
+            return distances
 
-        distances: list[float] = [0.0] * len(front)
         num_obj: int = len(objectives[0])
         for m in range(num_obj):
-            sorted_front: list[int] = sorted(range(len(front)), key=lambda i: objectives[front[i]][m])
+            sorted_front: list[int] = sorted(front, key=lambda i: objectives[i][m])
             distances[sorted_front[0]] = float('inf')
             distances[sorted_front[-1]] = float('inf')
-            for i in range(1, len(front) - 1):
-                distances[sorted_front[i]] += (
-                    objectives[front[sorted_front[i + 1]]][m] - objectives[front[sorted_front[i - 1]]][m]
-                )
+            f_min: float = objectives[sorted_front[0]][m]
+            f_max: float = objectives[sorted_front[-1]][m]
+            span: float = (f_max - f_min) if f_max > f_min else 1.0  # normalização por objetivo
+            for k in range(1, len(front) - 1):
+                distances[sorted_front[k]] += (
+                    objectives[sorted_front[k + 1]][m] - objectives[sorted_front[k - 1]][m]
+                ) / span
         return distances
+
+    # Rank (índice da fronteira) e crowding por indivíduo, para o operador de torneio
+    def compute_ranks_and_crowding(
+        fronts: list[list[int]],
+        objectives: list[tuple[float, ...]]
+    ) -> tuple[dict[int, int], dict[int, float]]:
+        rank: dict[int, int] = {}
+        crowd: dict[int, float] = {}
+        for r, front in enumerate(fronts):
+            cd = crowding_distance(front, objectives)
+            for i in front:
+                rank[i] = r
+                crowd[i] = cd[i]
+        return rank, crowd
+
+    # Torneio binário com o operador de comparação por aglomeração (crowded-comparison)
+    def tournament_selection(
+        population: list[np.ndarray],
+        rank: dict[int, int],
+        crowd: dict[int, float]
+    ) -> np.ndarray:
+        i, j = random.sample(range(len(population)), 2)
+        if rank[i] < rank[j]:
+            return population[i]
+        if rank[j] < rank[i]:
+            return population[j]
+        return population[i] if crowd[i] >= crowd[j] else population[j]
 
     # Seleção com elitismo
     def select_next_population(
@@ -99,13 +131,9 @@ def nsga2_func(
             if len(next_population) + len(front) <= pop_size:
                 next_population.extend(front)
             else:
-                distances: list[float] = crowding_distance(front, objectives)
-                sorted_front: list[tuple[int, float]] = sorted(
-                    zip(front, distances), key=lambda x: x[1], reverse=True
-                )
-                next_population.extend(
-                    [solution for solution, _ in sorted_front[:pop_size - len(next_population)]]
-                )
+                distances: dict[int, float] = crowding_distance(front, objectives)
+                sorted_front: list[int] = sorted(front, key=lambda i: distances[i], reverse=True)
+                next_population.extend(sorted_front[:pop_size - len(next_population)])
                 break
         return [population[i] for i in next_population]  # Seleciona os indivíduos correspondentes
 
@@ -116,30 +144,26 @@ def nsga2_func(
         population = initial_pop
 
     for gen in range(generations):
-        # Avaliação
+        # Avaliação, ordenação e cálculo de rank/crowding da população atual
         objectives: list[tuple[float, ...]] = evaluate_population(population, functions)
-
-        # Ordenação não-dominada
         fronts: list[list[int]] = fast_nondominated_sort(objectives)
-
-        # Visualização no final
-        if gen == generations - 1:
-            pareto_front: list[tuple[float, ...]] = [objectives[i] for i in fronts[0]]
-            pareto_front.sort()
+        rank, crowd = compute_ranks_and_crowding(fronts, objectives)
 
         # Nova geração
         new_population: list[np.ndarray] = []
         while len(new_population) < pop_size:
-            # Seleção de dois pais
-            parent1, parent2 = random.sample(population, 2)
+            # Seleção de dois pais por torneio binário (crowded-comparison)
+            parent1: np.ndarray = tournament_selection(population, rank, crowd)
+            parent2: np.ndarray = tournament_selection(population, rank, crowd)
 
             # Cruzamento
             children: tuple[np.ndarray, np.ndarray] = crossover(parent1, parent2)
 
-            # Mutação
-            child: np.ndarray = mutation(children[0], bounds)
-
-            new_population.append(child)
+            # Mutação — mantém AMBOS os filhos (usar só children[0] enviesava cada gene
+            # para o menor dos pais, prejudicando a convergência)
+            new_population.append(mutation(children[0], bounds))
+            if len(new_population) < pop_size:
+                new_population.append(mutation(children[1], bounds))
 
         # Combinar pais e descendentes
         combined_population: list[np.ndarray] = population + new_population
@@ -150,5 +174,11 @@ def nsga2_func(
 
         # Selecionar próxima geração com elitismo
         population = select_next_population(combined_fronts, combined_objectives, combined_population, pop_size)
+
+    # Fronteira de Pareto da população final, após todas as gerações
+    objectives = evaluate_population(population, functions)
+    fronts = fast_nondominated_sort(objectives)
+    pareto_front: list[tuple[float, ...]] = [objectives[i] for i in fronts[0]]
+    pareto_front.sort()
 
     return pareto_front

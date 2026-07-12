@@ -1,6 +1,6 @@
 import random
 import numpy as np
-from typing import Callable, Optional, Sequence, DefaultDict
+from typing import Callable, Optional, Sequence
 
 def nsga3_func(
     pop_size: int,
@@ -115,6 +115,57 @@ def nsga3_func(
         generate_recursive(points, M, p, p, 0, [])
         return np.array(points, dtype=float)
 
+    def _adaptive_normalization(St_objs: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        """
+        Normalização adaptativa do NSGA-III (Deb & Jain, 2014).
+        Estima o ponto ideal (z*) e a nadir via pontos extremos / interceptos do
+        hiperplano, calculados sobre o conjunto S_t (fronteiras consideradas).
+
+        :param St_objs: (S x M) objetivos de S_t
+        :return: (ideal, intercepts) — ambos (M,)
+        """
+        M: int = St_objs.shape[1]
+        ideal: np.ndarray = St_objs.min(axis=0)
+        translated: np.ndarray = St_objs - ideal
+
+        # Pontos extremos: minimizam a Achievement Scalarizing Function em cada eixo
+        extreme_idx: list[int] = []
+        for j in range(M):
+            w = np.full(M, 1e-6, dtype=float)
+            w[j] = 1.0
+            asf = np.max(translated / w, axis=1)
+            extreme_idx.append(int(np.argmin(asf)))
+        extremes: np.ndarray = translated[extreme_idx]  # (M x M)
+
+        # Interceptos do hiperplano que passa pelos extremos: sum(f/a) = 1
+        try:
+            b = np.linalg.solve(extremes, np.ones(M))
+            if np.any(b <= 1e-12) or np.any(~np.isfinite(b)):
+                raise np.linalg.LinAlgError
+            intercepts = 1.0 / b
+            if np.any(intercepts <= 1e-12) or np.any(~np.isfinite(intercepts)):
+                raise np.linalg.LinAlgError
+        except np.linalg.LinAlgError:
+            intercepts = translated.max(axis=0)  # fallback: nadir por máximo
+
+        intercepts = np.where(intercepts < 1e-12, 1e-12, intercepts)
+        return ideal, intercepts
+
+    def _associate(norm_objs: np.ndarray, reference_points: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        """
+        Associa cada solução normalizada à direção de referência mais próxima
+        (menor distância perpendicular).
+
+        :return: (assoc, dist) — índice da ref e distância perpendicular por solução
+        """
+        dirs = reference_points / (np.linalg.norm(reference_points, axis=1, keepdims=True) + 1e-32)
+        proj = norm_objs @ dirs.T                                  # (S x K)
+        proj_vec = proj[:, :, None] * dirs[None, :, :]             # (S x K x M)
+        perp = np.linalg.norm(norm_objs[:, None, :] - proj_vec, axis=2)  # (S x K)
+        assoc = np.argmin(perp, axis=1)
+        dist = perp[np.arange(perp.shape[0]), assoc]
+        return assoc, dist
+
     def environmental_selection(
         population: list[np.ndarray],
         objectives: list[tuple[float, ...]],
@@ -122,71 +173,55 @@ def nsga3_func(
         reference_points: np.ndarray,
         pop_size: int
     ) -> list[np.ndarray]:
-        next_population_indices: list[int] = []
-        for front in fronts:
-            if len(next_population_indices) + len(front) <= pop_size:
-                next_population_indices.extend(front)
-            else:
-                N: int = pop_size - len(next_population_indices)
-                selected_indices: list[int] = niching_selection(front, objectives, reference_points, N)
-                next_population_indices.extend(selected_indices)
-                break
-        next_population: list[np.ndarray] = [population[i] for i in next_population_indices]
-        return next_population
+        objs_all: np.ndarray = np.array(objectives, dtype=float)
 
-    def niching_selection(
-        front: list[int],
-        objectives: list[tuple[float, ...]],
-        reference_points: np.ndarray,
-        N: int
-    ) -> list[int]:
+        # Aceita fronteiras inteiras enquanto couberem
         selected: list[int] = []
-        objs: np.ndarray = np.array([objectives[i] for i in front], dtype=float)
-        ideal_point: np.ndarray = np.min(objs, axis=0)
-        normalized_objs: np.ndarray = objs - ideal_point
-
-        max_values: np.ndarray = np.max(normalized_objs, axis=0)
-        max_values[max_values == 0] = 1
-        normalized_objs = normalized_objs / max_values
-
-        associations: list[tuple[int, int, float]] = []
-        for idx, obj in zip(front, normalized_objs):
-            distances: np.ndarray = np.linalg.norm(obj - reference_points, axis=1)
-            min_index: int = int(np.argmin(distances))
-            associations.append((idx, min_index, float(distances[min_index])))
-
-        reference_associations: DefaultDict[int, list[tuple[int, float]]] = DefaultDict(list)
-        for idx, ref_idx, dist in associations:
-            reference_associations[ref_idx].append((idx, dist))
-
-        niche_counts: dict[int, int] = {i: 0 for i in range(len(reference_points))}
-        selected_flags: dict[int, bool] = {idx: False for idx in front}
-
-        while len(selected) < N:
-            min_niche_count: int = min(niche_counts.values()) if niche_counts else 0
-            min_refs: list[int] = [ref for ref, count in niche_counts.items() if count == min_niche_count]
-
-            for ref_idx in min_refs:
-                assoc_inds: list[tuple[int, float]] = reference_associations.get(ref_idx, [])
-                unselected_inds: list[tuple[int, float]] = [(idx, dist) for idx, dist in assoc_inds if not selected_flags[idx]]
-
-                if unselected_inds:
-                    unselected_inds.sort(key=lambda x: x[1])
-                    selected_idx: int = unselected_inds[0][0]
-                    selected.append(selected_idx)
-                    selected_flags[selected_idx] = True
-                    niche_counts[ref_idx] += 1
-                    break
+        splitting: list[int] = []
+        for front in fronts:
+            if len(selected) + len(front) <= pop_size:
+                selected.extend(front)
+                if len(selected) == pop_size:
+                    return [population[i] for i in selected]
             else:
-                remaining: list[int] = [idx for idx in front if not selected_flags[idx]]
-                if remaining:
-                    selected_idx = random.choice(remaining)
-                    selected.append(selected_idx)
-                    selected_flags[selected_idx] = True
-                else:
-                    break
+                splitting = front
+                break
 
-        return selected[:N]
+        if not splitting:  # completou exatamente com fronteiras inteiras
+            return [population[i] for i in selected[:pop_size]]
+
+        # S_t = já selecionados + fronteira que será dividida
+        St: list[int] = selected + splitting
+        ideal, intercepts = _adaptive_normalization(objs_all[St])
+        norm = (objs_all[St] - ideal) / intercepts
+        assoc, dist = _associate(norm, reference_points)
+
+        n_sel: int = len(selected)                 # membros já selecionados (F_1..F_{l-1})
+        K: int = len(reference_points)
+        niche_count: np.ndarray = np.zeros(K, dtype=int)
+        for i in range(n_sel):
+            niche_count[assoc[i]] += 1
+
+        cand: list[bool] = [i >= n_sel for i in range(len(St))]  # candidatos = fronteira dividida
+        chosen: list[int] = []
+        while len(selected) + len(chosen) < pop_size:
+            avail_refs = {assoc[i] for i in range(len(St)) if cand[i]}
+            if not avail_refs:
+                break
+            min_nc = min(niche_count[r] for r in avail_refs)
+            min_refs = [r for r in avail_refs if niche_count[r] == min_nc]
+            j = random.choice(min_refs)
+            members = [i for i in range(len(St)) if cand[i] and assoc[i] == j]
+            if niche_count[j] == 0:
+                pick = min(members, key=lambda i: dist[i])   # mais próximo da direção
+            else:
+                pick = random.choice(members)                # aleatório entre os associados
+            chosen.append(St[pick])
+            cand[pick] = False
+            niche_count[j] += 1
+
+        selected.extend(chosen)
+        return [population[i] for i in selected[:pop_size]]
 
     def compute_individual_ranks(fronts: list[list[int]]) -> dict[int, int]:
         individual_ranks: dict[int, int] = {}
@@ -237,8 +272,11 @@ def nsga3_func(
             parent1: np.ndarray = tournament_selection(population, individual_ranks)
             parent2: np.ndarray = tournament_selection(population, individual_ranks)
             children: tuple[np.ndarray, np.ndarray] = crossover(parent1, parent2)
-            child: np.ndarray = mutation(children[0], bounds)
-            offspring_population.append(child)
+            # Mantém AMBOS os filhos do crossover. Usar apenas children[0] enviesava
+            # cada gene para o menor dos pais (E[c1] ~ min), prejudicando a convergência.
+            offspring_population.append(mutation(children[0], bounds))
+            if len(offspring_population) < pop_size:
+                offspring_population.append(mutation(children[1], bounds))
 
         combined_population: list[np.ndarray] = population + offspring_population
         combined_objectives: list[tuple[float, ...]] = evaluate_population(combined_population, functions)
